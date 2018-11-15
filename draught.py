@@ -22,14 +22,12 @@ class Pawn():
 
 
 class Player():
-    def __init__(self):
+    def __init__(self, player):
         super().__init__()
-        self.initPlayer()
-
-    def initPlayer(self):
-        self.player = 1
+        self.player = player
         self.pawnLeft = 12
         self.pawnKilled = 0
+
 
 
 class BoardData():
@@ -91,36 +89,10 @@ class BoardData():
         self.boardData[2][5] = self.createPawn(2, 5, 2)
         self.boardData[4][5] = self.createPawn(4, 5, 2)
         self.boardData[6][5] = self.createPawn(6, 5, 2)
-
-        """""
-        self.createPawn(5, 0, 1)
-        self.createPawn(7, 0, 1)
-        self.createPawn(0, 1, 1)
-        self.createPawn(2, 1, 1)
-        self.createPawn(4, 1, 1)
-        self.createPawn(6, 1, 1)
-        self.createPawn(1, 2, 1)
-        self.createPawn(3, 2, 1)
-        self.createPawn(5, 2, 1)
-        self.createPawn(7, 2, 1)
-
-        self.createPawn(0, 7, 2)
-        self.createPawn(2, 7, 2)
-        self.createPawn(4, 7, 2)
-        self.createPawn(6, 7, 2)
-        self.createPawn(1, 6, 2)
-        self.createPawn(3, 6, 2)
-        self.createPawn(5, 6, 2)
-        self.createPawn(7, 6, 2)
-        self.createPawn(0, 5, 2)
-        self.createPawn(2, 5, 2)
-        self.createPawn(4, 5, 2)
-        self.createPawn(6, 5, 2)
-        """""
         # print(self.boardData[0][0], self.boardData[0][1], self.boardData[0][2])
 
 
-class Tetris(QMainWindow):
+class Draught(QMainWindow):
 
     def __init__(self):
         super().__init__()
@@ -131,10 +103,15 @@ class Tetris(QMainWindow):
         self.tboard = Board(self)
         self.setCentralWidget(self.tboard)
 
+        mainMenu = self.menuBar()
+        gameMenu = mainMenu.addMenu(" Game")
+
+
+
+
         self.statusbar = self.statusBar()
         self.tboard.msg2Statusbar[str].connect(self.statusbar.showMessage)
 
-        # self.tboard.start()
 
         self.resize(400, 400)
         self.center()
@@ -172,6 +149,9 @@ class Board(QFrame):
         self.board = []
         self.boardData = BoardData()
         self.boardData.setupBoardData(Board.BoardWidth, Board.BoardHeight)
+        self.players = []
+        self.players.append(Player(1))
+        self.players.append(Player(2))
         self.setFocusPolicy(Qt.StrongFocus)
 
     def shapeAt(self, x, y):
@@ -212,9 +192,11 @@ class Board(QFrame):
                                     boardTop + i * self.squareHeight(),
                                     3)
                 if (self.boardData.boardData[j][i].getPlayer() == 1):
-                    self.drawPawn(painter, rect.left() + j * self.squareWidth(), boardTop + i * self.squareHeight(), 0, self.boardData.boardData[j][i].isKing)
+                    self.drawPawn(painter, rect.left() + j * self.squareWidth(), boardTop + i * self.squareHeight(), 0,
+                                  self.boardData.boardData[j][i].isKing)
                 if (self.boardData.boardData[j][i].getPlayer() == 2):
-                    self.drawPawn(painter, rect.left() + j * self.squareWidth(), boardTop + i * self.squareHeight(), 1, self.boardData.boardData[j][i].isKing)
+                    self.drawPawn(painter, rect.left() + j * self.squareWidth(), boardTop + i * self.squareHeight(), 1,
+                                  self.boardData.boardData[j][i].isKing)
 
     def drawSquare(self, painter, x, y, colorIndex):
         '''draws a square of a shape'''
@@ -247,87 +229,54 @@ class Board(QFrame):
             painter.drawEllipse(x, y, self.squareWidth() / 2, self.squareHeight() / 2)
 
     def defineAvailableMove(self, x, y):
-        if self.currentPlayer == 1:
+
+        if self.boardData.boardData[x][y].isKing == True or self.currentPlayer == 1:
             if x + 1 <= 7 and y + 1 <= 7:
-                if self.boardData.boardData[x + 1][y + 1].belongToPlayer == 2:
+                if self.boardData.boardData[x + 1][y + 1].belongToPlayer == (2 if self.currentPlayer == 1 else 1):
                     if x + 2 <= 7 and y + 2 <= 7 and self.boardData.boardData[x + 2][y + 2].belongToPlayer == 0:
                         self.boardData.boardData[x + 2][y + 2].moveAvailable = True
-                elif self.boardData.boardData[x + 1][y + 1].belongToPlayer == 1:
+                elif self.boardData.boardData[x + 1][y + 1].belongToPlayer == (1 if self.currentPlayer == 1 else 2):
                     self.boardData.boardData[x + 1][y + 1].moveAvailable = False
                 else:
                     self.boardData.boardData[x + 1][y + 1].moveAvailable = True
             if x - 1 >= 0 and y + 1 <= 7:
-                if self.boardData.boardData[x - 1][y + 1].belongToPlayer == 2:
+                if self.boardData.boardData[x - 1][y + 1].belongToPlayer == (2 if self.currentPlayer == 1 else 1):
                     if x - 2 >= 0 and y + 2 <= 7 and self.boardData.boardData[x - 2][y + 2].belongToPlayer == 0:
                         self.boardData.boardData[x - 2][y + 2].moveAvailable = True
-                elif self.boardData.boardData[x - 1][y + 1].belongToPlayer == 1:
+                elif self.boardData.boardData[x - 1][y + 1].belongToPlayer == (1 if self.currentPlayer == 1 else 2):
                     self.boardData.boardData[x - 1][y + 1].moveAvailable = False
                 else:
                     self.boardData.boardData[x - 1][y + 1].moveAvailable = True
 
-
-            if self.boardData.boardData[x][y].isKing == True:
-                if x + 1 <= 7 and y - 1 >= 0:
-                    if self.boardData.boardData[x + 1][y - 1].belongToPlayer == 2:
-                        if x + 2 <= 7 and y - 2 >= 0 and self.boardData.boardData[x + 2][y - 2].belongToPlayer == 0:
-                            self.boardData.boardData[x + 2][y - 2].moveAvailable = True
-                    elif self.boardData.boardData[x + 1][y - 1].belongToPlayer == 1:
-                        self.boardData.boardData[x + 1][y - 1].moveAvailable = False
-                    else:
-                        self.boardData.boardData[x + 1][y - 1].moveAvailable = True
-                if x - 1 >= 0 and y - 1 >= 0:
-                    if self.boardData.boardData[x - 1][y - 1].belongToPlayer == 2:
-                        if x - 2 >= 0 and y - 2 >= 0 and self.boardData.boardData[x - 2][y - 2].belongToPlayer == 0:
-                            self.boardData.boardData[x - 2][y - 2].moveAvailable = True
-                    elif self.boardData.boardData[x - 1][y - 1].belongToPlayer == 1:
-                        self.boardData.boardData[x - 1][y - 1].moveAvailable = False
-                    else:
-                        self.boardData.boardData[x - 1][y - 1].moveAvailable = True
-
-        else:
+        if self.boardData.boardData[x][y].isKing == True or self.currentPlayer == 2:
             if x + 1 <= 7 and y - 1 >= 0:
-                if self.boardData.boardData[x + 1][y - 1].belongToPlayer == 1:
+                if self.boardData.boardData[x + 1][y - 1].belongToPlayer == (2 if self.currentPlayer == 1 else 1):
                     if x + 2 <= 7 and y - 2 >= 0 and self.boardData.boardData[x + 2][y - 2].belongToPlayer == 0:
                         self.boardData.boardData[x + 2][y - 2].moveAvailable = True
-                elif self.boardData.boardData[x + 1][y - 1].belongToPlayer == 2:
+                elif self.boardData.boardData[x + 1][y - 1].belongToPlayer == (1 if self.currentPlayer == 1 else 2):
                     self.boardData.boardData[x + 1][y - 1].moveAvailable = False
                 else:
                     self.boardData.boardData[x + 1][y - 1].moveAvailable = True
             if x - 1 >= 0 and y - 1 >= 0:
-                if self.boardData.boardData[x - 1][y - 1].belongToPlayer == 1:
+                if self.boardData.boardData[x - 1][y - 1].belongToPlayer == (2 if self.currentPlayer == 1 else 1):
                     if x - 2 >= 0 and y - 2 >= 0 and self.boardData.boardData[x - 2][y - 2].belongToPlayer == 0:
                         self.boardData.boardData[x - 2][y - 2].moveAvailable = True
-                elif self.boardData.boardData[x - 1][y - 1].belongToPlayer == 2:
+                elif self.boardData.boardData[x - 1][y - 1].belongToPlayer == (1 if self.currentPlayer == 1 else 2):
                     self.boardData.boardData[x - 1][y - 1].moveAvailable = False
                 else:
                     self.boardData.boardData[x - 1][y - 1].moveAvailable = True
-            if self.boardData.boardData[x][y].isKing == True:
-                if x + 1 <= 7 and y + 1 <= 7:
-                    if self.boardData.boardData[x + 1][y + 1].belongToPlayer == 1:
-                        if x + 2 <= 7 and y + 2 <= 7 and self.boardData.boardData[x + 2][y + 2].belongToPlayer == 0:
-                            self.boardData.boardData[x + 2][y + 2].moveAvailable = True
-                    elif self.boardData.boardData[x + 1][y + 1].belongToPlayer == 2:
-                        self.boardData.boardData[x + 1][y + 1].moveAvailable = False
-                    else:
-                        self.boardData.boardData[x + 1][y + 1].moveAvailable = True
-                if x - 1 >= 0 and y + 1 <= 7:
-                    if self.boardData.boardData[x - 1][y + 1].belongToPlayer == 1:
-                        if x - 2 >= 0 and y + 2 <= 7 and self.boardData.boardData[x - 2][y + 2].belongToPlayer == 0:
-                            self.boardData.boardData[x - 2][y + 2].moveAvailable = True
-                    elif self.boardData.boardData[x - 1][y + 1].belongToPlayer == 2:
-                        self.boardData.boardData[x - 1][y + 1].moveAvailable = False
-                    else:
-                        self.boardData.boardData[x - 1][y + 1].moveAvailable = True
 
     def removePawn(self, oldX, oldY, x, y):
-
 
         cptX = oldX
         cptY = oldY
 
         while cptX != x:
-            if self.boardData.boardData[cptX][cptY].belongToPlayer != self.currentPlayer:
+            if self.boardData.boardData[cptX][cptY].belongToPlayer == (2 if self.currentPlayer == 1 else 1):
+                self.players[self.boardData.boardData[cptX][cptY].belongToPlayer - 1].pawnLeft -= 1
+                self.players[self.currentPlayer - 1].pawnKilled += 1
                 self.boardData.boardData[cptX][cptY].belongToPlayer = 0
+
             if cptX < x:
                 cptX += 1
             else:
@@ -336,9 +285,6 @@ class Board(QFrame):
                 cptY += 1
             else:
                 cptY -= 1
-
-
-
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton & self.pawnSelected == True:
@@ -362,11 +308,12 @@ class Board(QFrame):
                     if y == 0:
                         self.boardData.boardData[x][y].isKing = True
                     self.currentPlayer = 1
+                print(self.players[0].pawnKilled, self.players[0].pawnLeft)
+                print(self.players[1].pawnKilled, self.players[1].pawnLeft)
 
         elif event.button() == Qt.LeftButton:
             x = int(event.pos().x() / self.squareWidth())
             y = int(event.pos().y() / self.squareHeight())
-            print(x, y)
             if (self.boardData.boardData[x][y].belongToPlayer == self.currentPlayer):
                 self.pawnSelected = True
                 self.selectedX = x
@@ -385,5 +332,5 @@ class Board(QFrame):
 
 if __name__ == '__main__':
     app = QApplication([])
-    tetris = Tetris()
+    draught = Draught()
     sys.exit(app.exec_())
