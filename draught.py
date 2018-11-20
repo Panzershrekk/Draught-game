@@ -142,6 +142,7 @@ class Board(QFrame):
         self.timer = QBasicTimer()
         self.currentPlayer = 1
         self.pawnSelected = False
+        self.forced = False
         self.selectedX = 0
         self.selectedY = 0
         self.curX = 0
@@ -228,6 +229,50 @@ class Board(QFrame):
             painter.setPen(color.lighter())
             painter.drawEllipse(x, y, self.squareWidth() / 2, self.squareHeight() / 2)
 
+
+    def killAvailable(self, x , y):
+        if self.boardData.boardData[x][y].isKing == True or self.currentPlayer == 1:
+            if x + 1 <= 7 and y + 1 <= 7:
+                if self.boardData.boardData[x + 1][y + 1].belongToPlayer == (2 if self.currentPlayer == 1 else 1):
+                    if x + 2 <= 7 and y + 2 <= 7 and self.boardData.boardData[x + 2][y + 2].belongToPlayer == 0:
+                        return True
+            if x - 1 >= 0 and y + 1 <= 7:
+                if self.boardData.boardData[x - 1][y + 1].belongToPlayer == (2 if self.currentPlayer == 1 else 1):
+                    if x - 2 >= 0 and y + 2 <= 7 and self.boardData.boardData[x - 2][y + 2].belongToPlayer == 0:
+                        return True
+
+        if self.boardData.boardData[x][y].isKing == True or self.currentPlayer == 2:
+            if x + 1 <= 7 and y - 1 >= 0:
+                if self.boardData.boardData[x + 1][y - 1].belongToPlayer == (2 if self.currentPlayer == 1 else 1):
+                    if x + 2 <= 7 and y - 2 >= 0 and self.boardData.boardData[x + 2][y - 2].belongToPlayer == 0:
+                        return True
+            if x - 1 >= 0 and y - 1 >= 0:
+                if self.boardData.boardData[x - 1][y - 1].belongToPlayer == (2 if self.currentPlayer == 1 else 1):
+                    if x - 2 >= 0 and y - 2 >= 0 and self.boardData.boardData[x - 2][y - 2].belongToPlayer == 0:
+                        return True
+        return False
+
+    def defineKillingMove(self, x , y):
+        if self.boardData.boardData[x][y].isKing == True or self.currentPlayer == 1:
+            if x + 1 <= 7 and y + 1 <= 7:
+                if self.boardData.boardData[x + 1][y + 1].belongToPlayer == (2 if self.currentPlayer == 1 else 1):
+                    if x + 2 <= 7 and y + 2 <= 7 and self.boardData.boardData[x + 2][y + 2].belongToPlayer == 0:
+                        self.boardData.boardData[x + 2][y + 2].moveAvailable = True
+            if x - 1 >= 0 and y + 1 <= 7:
+                if self.boardData.boardData[x - 1][y + 1].belongToPlayer == (2 if self.currentPlayer == 1 else 1):
+                    if x - 2 >= 0 and y + 2 <= 7 and self.boardData.boardData[x - 2][y + 2].belongToPlayer == 0:
+                        self.boardData.boardData[x - 2][y + 2].moveAvailable = True
+
+        if self.boardData.boardData[x][y].isKing == True or self.currentPlayer == 2:
+            if x + 1 <= 7 and y - 1 >= 0:
+                if self.boardData.boardData[x + 1][y - 1].belongToPlayer == (2 if self.currentPlayer == 1 else 1):
+                    if x + 2 <= 7 and y - 2 >= 0 and self.boardData.boardData[x + 2][y - 2].belongToPlayer == 0:
+                        self.boardData.boardData[x + 2][y - 2].moveAvailable = True
+            if x - 1 >= 0 and y - 1 >= 0:
+                if self.boardData.boardData[x - 1][y - 1].belongToPlayer == (2 if self.currentPlayer == 1 else 1):
+                    if x - 2 >= 0 and y - 2 >= 0 and self.boardData.boardData[x - 2][y - 2].belongToPlayer == 0:
+                        self.boardData.boardData[x - 2][y - 2].moveAvailable = True
+
     def defineAvailableMove(self, x, y):
 
         if self.boardData.boardData[x][y].isKing == True or self.currentPlayer == 1:
@@ -268,6 +313,7 @@ class Board(QFrame):
 
     def removePawn(self, oldX, oldY, x, y):
 
+        killCheck = False
         cptX = oldX
         cptY = oldY
 
@@ -276,6 +322,7 @@ class Board(QFrame):
                 self.players[self.boardData.boardData[cptX][cptY].belongToPlayer - 1].pawnLeft -= 1
                 self.players[self.currentPlayer - 1].pawnKilled += 1
                 self.boardData.boardData[cptX][cptY].belongToPlayer = 0
+                killCheck = True
 
             if cptX < x:
                 cptX += 1
@@ -285,32 +332,38 @@ class Board(QFrame):
                 cptY += 1
             else:
                 cptY -= 1
+        return killCheck
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton & self.pawnSelected == True:
             x = int(event.pos().x() / self.squareWidth())
             y = int(event.pos().y() / self.squareHeight())
 
-            if x == self.selectedX and y == self.selectedY:
+            if x == self.selectedX and y == self.selectedY and self.forced == False:
                 self.boardData.clearBoard()
                 self.pawnSelected = False
             if self.boardData.boardData[x][y].moveAvailable == True:
                 self.boardData.movePawn(self.selectedX, self.selectedY, 1, x, y, self.currentPlayer)
                 self.boardData.boardData[self.selectedX][self.selectedY].selected = False
-                self.removePawn(self.selectedX, self.selectedY, x, y)
+                killCheck = self.removePawn(self.selectedX, self.selectedY, x, y)
                 self.boardData.clearBoard()
-                self.pawnSelected = False
-                if (self.currentPlayer == 1):
-                    if y == 7:
-                        self.boardData.boardData[x][y].isKing = True
-                    self.currentPlayer = 2
+                if (self.killAvailable(x, y) == True and killCheck == True):
+                    self.forced = True
+                    self.selectedX = x
+                    self.selectedY = y
+                    self.defineKillingMove(self.selectedX, self.selectedY)
+                    self.boardData.boardData[x][y].selected = True
                 else:
-                    if y == 0:
-                        self.boardData.boardData[x][y].isKing = True
-                    self.currentPlayer = 1
-                print(self.players[0].pawnKilled, self.players[0].pawnLeft)
-                print(self.players[1].pawnKilled, self.players[1].pawnLeft)
-
+                    self.pawnSelected = False
+                    if (self.currentPlayer == 1):
+                        if y == 7:
+                            self.boardData.boardData[x][y].isKing = True
+                        self.currentPlayer = 2
+                    else:
+                        if y == 0:
+                            self.boardData.boardData[x][y].isKing = True
+                        self.currentPlayer = 1
+                    self.forced = False
         elif event.button() == Qt.LeftButton:
             x = int(event.pos().x() / self.squareWidth())
             y = int(event.pos().y() / self.squareHeight())
