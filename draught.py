@@ -7,6 +7,138 @@ from PyQt5.QtGui import QPainter, QColor
 import sys, random
 
 
+class AiData():
+    def __init__(self):
+        self.oldX = 0
+        self.oldY = 0
+        self.curX = 0
+        self.curY = 0
+        self.opportunity = 0
+
+class Ai():
+    def __init__(self):
+        self.depth = 1
+
+
+    def updatePawn(self, boardData):
+        self.board = boardData
+        self.AiPawn = []
+        self.PlayerPawn = []
+        nbrOfPawn = 0
+        for i in range(8):
+            for j in range(8):
+                if boardData[j][i].belongToPlayer == 2:
+                    self.AiPawn.append(boardData[j][i])
+                    nbrOfPawn += 1
+        nbrOfPawn = 0
+        for x in range(8):
+            for y in range(8):
+                if boardData[y][x].belongToPlayer == 1:
+                    self.PlayerPawn.append(boardData[y][x])
+                    nbrOfPawn += 1
+
+    def evaluate(self, data):
+        print(data.opportunity)
+        return (data)
+
+    def simulate(self, x, y, player, king, data):
+        data.oldX = x
+        data.oldY = y
+
+
+        if y - 1 >= 0 and x + 1 <= 7:
+            if self.board[x + 1][y - 1].belongToPlayer == 1:
+                if x + 2 <= 7 and y - 2 >= 0 and self.board[x + 2][y - 2].belongToPlayer == 0:
+                    #self.board[x + 2][y - 2].belongToPlayer = player
+                    data.curX = x + 2
+                    data.curY = y - 2
+                    data.opportunity += 50
+            elif self.board[x + 1][y - 1].belongToPlayer == 0:
+                #self.board[x + 1][y - 1].belongToPlayer = player
+                data.curX = x + 1
+                data.curY = y - 1
+                data.opportunity += 2
+        if y - 1 >= 0 and x - 1 >= 0:
+            if self.board[x - 1][y - 1].belongToPlayer == 1:
+                if x - 2 >= 0 and y - 2 >= 0 and self.board[x - 2][y - 2].belongToPlayer == 0:
+                    #self.board[x + 2][y - 2].belongToPlayer = player
+                    data.curX = x - 2
+                    data.curY = y - 2
+                    data.opportunity += 50
+            elif self.board[x - 1][y - 1].belongToPlayer == 0:
+                data.curX = x - 1
+                data.curY = y - 1
+                data.opportunity += 2
+
+
+
+        if y + 1 <= 7 and x + 1 <= 7 and king == True:
+            if self.board[x + 1][y + 1].belongToPlayer == 1:
+                if x + 2 <= 7 and y + 2 <= 7 and self.board[x + 2][y + 2].belongToPlayer == 0:
+                    #self.board[x + 2][y - 2].belongToPlayer = player
+                    data.curX = x + 2
+                    data.curY = y - 2
+                    data.opportunity += 50
+            elif self.board[x + 1][y + 1].belongToPlayer == 0:
+                #self.board[x + 1][y - 1].belongToPlayer = player
+                data.curX = x + 1
+                data.curY = y + 1
+                data.opportunity += 2
+        if y + 1 <= 7 and x - 1 >= 0 and king == True:
+            if self.board[x - 1][y + 1].belongToPlayer == 1:
+                if x - 2 >= 0 and y + 2 <= 7 and self.board[x - 2][y + 2].belongToPlayer == 0:
+                    #self.board[x + 2][y - 2].belongToPlayer = player
+                    data.curX = x - 2
+                    data.curY = y + 2
+                    data.opportunity += 50
+            elif self.board[x - 1][y + 1].belongToPlayer == 0:
+                data.curX = x - 1
+                data.curY = y + 1
+                data.opportunity += 2
+
+
+
+    def removeLastMove(self, pawn, data):
+        self.board[data.curX][data.curY].belongToPlayer = 0
+        self.board[data.oldX][data.oldY].belongToPlayer = 2
+
+    def minV(self, depth, prevData):
+        finalData = AiData()
+        finalData.opportunity = 1000000000
+        if (depth == 0):
+            ev = self.evaluate(prevData)
+            return ev
+        for pawn in self.PlayerPawn:
+            data = AiData()
+            self.simulate(pawn.x, pawn.y, pawn.belongToPlayer, pawn.isKing, data)
+            val = self.maxV(depth - 1, data)
+            if val.opportunity < finalData.opportunity:
+                finalData = val
+            #self.removeLastMove(pawn, data)
+        return finalData
+
+    def maxV(self, depth, prevData):
+        finalData = AiData()
+        finalData.opportunity = -1000000000
+        if (depth == 0):
+            ev = self.evaluate(prevData)
+            return ev
+        for pawn in self.AiPawn:
+            data = AiData()
+            self.simulate(pawn.x, pawn.y, pawn.belongToPlayer, pawn.isKing, data)
+            val = self.minV(depth - 1, data)
+            if val.opportunity > finalData.opportunity:
+                finalData = val
+        return finalData
+
+    def defineBest(self):
+
+        i = self.maxV(self.depth, None)
+        #self.board[i.curX][i.curY].belongToPlayer = 2
+        #self.board[i.oldX][i.oldY].belongToPlayer = 0
+        print(i.oldX, i.oldY, i.curX, i.curY)
+        return i
+
 class Pawn():
     def __init__(self, x, y, player):
         super().__init__()
@@ -50,6 +182,8 @@ class BoardData():
         self.boardData[x][y].belongToPlayer = 0
         self.boardData[newX][newY].isKing = self.boardData[x][y].isKing
         self.boardData[x][y].isKing = False
+        self.boardData[newX][newY].x = newX
+        self.boardData[newX][newY].y = newY
         self.boardData[newX][newY].belongToPlayer = newP
 
     def clearBoard(self):
@@ -137,10 +271,10 @@ class Board(QFrame):
         self.initBoard()
 
     def initBoard(self):
-        '''initiates board'''
-
         self.timer = QBasicTimer()
         self.currentPlayer = 1
+        self.aiActivated = True
+        self.Ai = Ai()
         self.pawnSelected = False
         self.forced = False
         self.selectedX = 0
@@ -156,27 +290,18 @@ class Board(QFrame):
         self.setFocusPolicy(Qt.StrongFocus)
 
     def shapeAt(self, x, y):
-        '''determines shape at the board position'''
-
         return self.board[(y * Board.BoardWidth) + x]
 
     def setShapeAt(self, x, y, shape):
-        '''sets a shape at the board'''
-
         self.board[(y * Board.BoardWidth) + x] = shape
 
     def squareWidth(self):
-        '''returns the width of one square'''
-
         return self.contentsRect().width() // Board.BoardWidth
 
     def squareHeight(self):
-        '''returns the height of one square'''
-
         return self.contentsRect().height() // Board.BoardHeight
 
     def paintEvent(self, event):
-        '''paints all shapes of the game'''
         painter = QPainter(self)
         rect = self.contentsRect()
 
@@ -200,8 +325,6 @@ class Board(QFrame):
                                   self.boardData.boardData[j][i].isKing)
 
     def drawSquare(self, painter, x, y, colorIndex):
-        '''draws a square of a shape'''
-
         colorTable = [0x0000FF, 0xFFFFFF, 0xFF00FF, 0xFF0000]
 
         color = QColor(colorTable[colorIndex])
@@ -346,6 +469,7 @@ class Board(QFrame):
                 self.boardData.movePawn(self.selectedX, self.selectedY, 1, x, y, self.currentPlayer)
                 self.boardData.boardData[self.selectedX][self.selectedY].selected = False
                 killCheck = self.removePawn(self.selectedX, self.selectedY, x, y)
+
                 self.boardData.clearBoard()
                 if (self.killAvailable(x, y) == True and killCheck == True):
                     self.forced = True
@@ -358,7 +482,16 @@ class Board(QFrame):
                     if (self.currentPlayer == 1):
                         if y == 7:
                             self.boardData.boardData[x][y].isKing = True
-                        self.currentPlayer = 2
+                            self.currentPlayer = 2
+                        if self.aiActivated is True:
+                            self.Ai.updatePawn(self.boardData.boardData)
+                            ai = self.Ai.defineBest()
+                            self.currentPlayer = 2
+                            self.boardData.movePawn(ai.oldX, ai.oldY, 1, ai.curX, ai.curY, 2)
+                            self.removePawn(ai.oldX, ai.oldY, ai.curX, ai.curY)
+                            if ai.curY == 0:
+                                self.boardData.boardData[ai.curX][ai.curY].isKing = True
+                            self.currentPlayer = 1
                     else:
                         if y == 0:
                             self.boardData.boardData[x][y].isKing = True
