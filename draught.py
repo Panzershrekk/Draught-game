@@ -1,9 +1,9 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-from PyQt5.QtWidgets import QMainWindow, QFrame, QDesktopWidget, QApplication
-from PyQt5.QtCore import Qt, QBasicTimer, pyqtSignal
-from PyQt5.QtGui import QPainter, QColor
+from PyQt5.QtWidgets import QMainWindow, QFrame, QDesktopWidget, QApplication, QToolBar, QLabel, QAction, QSizePolicy, QWidget, QGridLayout, QDialog, QPushButton
+from PyQt5.QtCore import Qt, QBasicTimer, pyqtSignal, QSize
+from PyQt5.QtGui import QPainter, QColor, QFont
 import sys, random
 
 
@@ -92,6 +92,32 @@ class BoardData():
         # print(self.boardData[0][0], self.boardData[0][1], self.boardData[0][2])
 
 
+class WinnerWindow(QDialog):
+    def __init__(self, winner):
+        super().__init__()
+
+        grid = QGridLayout()
+
+        boldFont = QFont()
+        boldFont.setBold(True)
+
+        winnerLabel = QLabel(winner + " won the game ! Congratulations, woo woo wooo !!")
+        grid.addWidget(winnerLabel, 0, 0)
+
+        b1 = QPushButton("Restart the game", self)
+        b1.clicked.connect(self.restart)
+        grid.addWidget(b1, 1, 0)
+
+        self.setLayout(grid)
+        self.setWindowTitle("And we have a winner !")
+
+    def setDraught(self, draught):
+        self.draught = draught
+
+    def restart(self):
+        self.draught.resetGame()
+        self.close()
+
 class Draught(QMainWindow):
 
     def __init__(self):
@@ -101,22 +127,128 @@ class Draught(QMainWindow):
 
     def initUI(self):
         self.tboard = Board(self)
+        self.tboard.setDraught(self)
         self.setCentralWidget(self.tboard)
 
         mainMenu = self.menuBar()
         gameMenu = mainMenu.addMenu(" Game")
 
-
-
+        resetAction = QAction("Reset", self)
+        resetAction.setShortcut("Ctrl+R")
+        gameMenu.addAction(resetAction)
+        gameMenu.triggered.connect(self.resetGame)
 
         self.statusbar = self.statusBar()
         self.tboard.msg2Statusbar[str].connect(self.statusbar.showMessage)
 
+        toolbar = QToolBar()
+        toolbar.setAllowedAreas(Qt.RightToolBarArea)
+        toolbar.setIconSize(QSize(40, 40))
+        toolbar.setFloatable(False)
+        toolbar.setMovable(False)
 
-        self.resize(400, 400)
+        magicWidget = QWidget()
+        self.grid = QGridLayout()
+
+        myFont = QFont()
+        myFont.setBold(True)
+        myFont.setPixelSize(15)
+
+        self.playerLabel = QLabel("Player")
+        self.playerLabel.setFont(myFont)
+        self.playerTurn = self.turnLabel()
+
+        self.opponentLabel = QLabel("Opponent")
+        self.opponentLabel.setFont(myFont)
+        self.opponentLabel.setContentsMargins(0, 30, 0, 0)
+        self.opponentTurn = self.turnLabel()
+        self.opponentTurn.setContentsMargins(0, 30, 0, 0)
+
+        self.playerPawnLeft = QLabel(str(self.tboard.players[0].pawnLeft))
+        self.opponentPawnLeft = QLabel(str(self.tboard.players[1].pawnLeft))
+
+        self.playerPawnKilled = QLabel(str(self.tboard.players[0].pawnKilled))
+        self.opponentPawnKilled = QLabel(str(self.tboard.players[1].pawnKilled))
+
+        self.grid.addWidget(self.playerLabel, 0, 0)
+        self.grid.addWidget(self.playerTurn, 0, 1)
+        self.grid.addWidget(self.remainingLabel(), 1, 0)
+        self.grid.addWidget(self.playerPawnLeft, 1, 1)
+        self.grid.addWidget(self.killedLabel(), 2, 0)
+        self.grid.addWidget(self.playerPawnKilled, 2, 1)
+
+        self.grid.addWidget(self.opponentLabel, 3, 0)
+        self.grid.addWidget(self.opponentTurn, 3, 1)
+        self.grid.addWidget(self.remainingLabel(), 4, 0)
+        self.grid.addWidget(self.opponentPawnLeft, 4, 1)
+        self.grid.addWidget(self.killedLabel(), 5, 0)
+        self.grid.addWidget(self.opponentPawnKilled, 5, 1)
+
+        magicWidget.setLayout(self.grid)
+
+        toolbar.addWidget(magicWidget)
+
+        self.updateTurnLabel()
+
+        self.addToolBar(Qt.RightToolBarArea, toolbar)
+
+        self.resize(550, 400)
         self.center()
         self.setWindowTitle('Draught')
         self.show()
+
+    def resetGame(self):
+        self.tboard.initBoard()
+        self.updatePawnLeft(0)
+        self.updatePawnLeft(1)
+        self.updatePawnKilled(0)
+        self.updatePawnKilled(1)
+        self.updateTurnLabel()
+        self.update()
+
+    def displayWinner(self, nextTurnPlayer):
+        self.update()
+        if (nextTurnPlayer == 0):
+            winner = "Opponent"
+        elif (nextTurnPlayer == 1):
+            winner = "Player"
+        self.winnerWindow = WinnerWindow(winner)
+        self.winnerWindow.setDraught(self)
+        self.winnerWindow.exec()
+
+    def turnLabel(self):
+        label = QLabel("Your turn !")
+        label.setStyleSheet('color: #c20d00')
+        return label
+
+    def remainingLabel(self):
+        return QLabel("Remaining : ")
+
+    def killedLabel(self):
+        return QLabel("Killed : ")
+
+    def updatePawnLeft(self, player):
+        if (player == 0):
+            self.playerPawnLeft.setText(str(self.tboard.players[0].pawnLeft))
+        elif (player == 1):
+            self.opponentPawnLeft.setText(str(self.tboard.players[1].pawnLeft))
+        self.update()
+
+    def updatePawnKilled(self, player):
+        if (player == 0):
+            self.playerPawnKilled.setText(str(self.tboard.players[0].pawnKilled))
+        elif (player == 1):
+            self.opponentPawnKilled.setText(str(self.tboard.players[1].pawnKilled))
+        self.update()
+
+    def updateTurnLabel(self):
+        if (self.tboard.currentPlayer == 1):
+            self.playerTurn.setText("Your turn !")
+            self.opponentTurn.setText("")
+        elif (self.tboard.currentPlayer == 2):
+            self.opponentTurn.setText("Your turn !")
+            self.playerTurn.setText("")
+        self.update()
 
     def center(self):
         screen = QDesktopWidget().screenGeometry()
@@ -141,6 +273,7 @@ class Board(QFrame):
 
         self.timer = QBasicTimer()
         self.currentPlayer = 1
+        self.gameFinished = False
         self.pawnSelected = False
         self.forced = False
         self.selectedX = 0
@@ -154,6 +287,9 @@ class Board(QFrame):
         self.players.append(Player(1))
         self.players.append(Player(2))
         self.setFocusPolicy(Qt.StrongFocus)
+
+    def setDraught(self, parent):
+        self.draught = parent
 
     def shapeAt(self, x, y):
         '''determines shape at the board position'''
@@ -191,7 +327,7 @@ class Board(QFrame):
                 if (self.boardData.boardData[j][i].moveAvailable == True):
                     self.drawSquare(painter, rect.left() + j * self.squareWidth(),
                                     boardTop + i * self.squareHeight(),
-                                    3)
+                                    2)
                 if (self.boardData.boardData[j][i].getPlayer() == 1):
                     self.drawPawn(painter, rect.left() + j * self.squareWidth(), boardTop + i * self.squareHeight(), 0,
                                   self.boardData.boardData[j][i].isKing)
@@ -202,7 +338,7 @@ class Board(QFrame):
     def drawSquare(self, painter, x, y, colorIndex):
         '''draws a square of a shape'''
 
-        colorTable = [0x0000FF, 0xFFFFFF, 0xFF00FF, 0xFF0000]
+        colorTable = [0x514D5B, 0xFFFFFF, 0x7F5579]
 
         color = QColor(colorTable[colorIndex])
         painter.fillRect(x + 1, y + 1, self.squareWidth() - 2,
@@ -219,7 +355,7 @@ class Board(QFrame):
                          y + self.squareHeight() - 1, x + self.squareWidth() - 1, y + 1)
 
     def drawPawn(self, painter, x, y, colorIndex, isKing=False):
-        colorTable = [0xFF0000, 0xFFFF00]
+        colorTable = [0xC1442E, 0xF6CD37]
 
         color = QColor(colorTable[colorIndex])
         painter.setBrush(color)
@@ -319,11 +455,17 @@ class Board(QFrame):
 
         while cptX != x:
             if self.boardData.boardData[cptX][cptY].belongToPlayer == (2 if self.currentPlayer == 1 else 1):
-                self.players[self.boardData.boardData[cptX][cptY].belongToPlayer - 1].pawnLeft -= 1
+                playerHurted = self.boardData.boardData[cptX][cptY].belongToPlayer - 1
+                self.players[playerHurted].pawnLeft -= 1
                 self.players[self.currentPlayer - 1].pawnKilled += 1
                 self.boardData.boardData[cptX][cptY].belongToPlayer = 0
+                self.update()
+                self.draught.updatePawnLeft(playerHurted)
+                self.draught.updatePawnKilled(self.currentPlayer - 1)
                 killCheck = True
-
+                ## TODO : mettre pawnLeft à 0
+                if (self.players[playerHurted].pawnLeft == 10):
+                    self.gameFinished = True
             if cptX < x:
                 cptX += 1
             else:
@@ -335,6 +477,8 @@ class Board(QFrame):
         return killCheck
 
     def mousePressEvent(self, event):
+        if self.gameFinished == True:
+            return
         if event.button() == Qt.LeftButton & self.pawnSelected == True:
             x = int(event.pos().x() / self.squareWidth())
             y = int(event.pos().y() / self.squareHeight())
@@ -347,6 +491,7 @@ class Board(QFrame):
                 self.boardData.boardData[self.selectedX][self.selectedY].selected = False
                 killCheck = self.removePawn(self.selectedX, self.selectedY, x, y)
                 self.boardData.clearBoard()
+
                 if (self.killAvailable(x, y) == True and killCheck == True):
                     self.forced = True
                     self.selectedX = x
@@ -364,6 +509,11 @@ class Board(QFrame):
                             self.boardData.boardData[x][y].isKing = True
                         self.currentPlayer = 1
                     self.forced = False
+                    self.draught.updateTurnLabel()
+
+                if self.gameFinished == True:
+                    self.draught.displayWinner(self.currentPlayer - 1)
+                    return
         elif event.button() == Qt.LeftButton:
             x = int(event.pos().x() / self.squareWidth())
             y = int(event.pos().y() / self.squareHeight())
