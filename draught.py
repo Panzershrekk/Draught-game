@@ -49,52 +49,51 @@ class Ai():
         if y - 1 >= 0 and x + 1 <= 7:
             if self.board[x + 1][y - 1].belongToPlayer == 1:
                 if x + 2 <= 7 and y - 2 >= 0 and self.board[x + 2][y - 2].belongToPlayer == 0:
-                    #self.board[x + 2][y - 2].belongToPlayer = player
+                    #self.board[x + 2][y - 2].belongToPlayer = playerp
                     data.curX = x + 2
                     data.curY = y - 2
                     data.opportunity += 50
             elif self.board[x + 1][y - 1].belongToPlayer == 0:
-                #self.board[x + 1][y - 1].belongToPlayer = player
-                data.curX = x + 1
-                data.curY = y - 1
-                data.opportunity += 2
+                if (data.opportunity < 50):
+                    data.curX = x + 1
+                    data.curY = y - 1
+                    data.opportunity += 2
         if y - 1 >= 0 and x - 1 >= 0:
             if self.board[x - 1][y - 1].belongToPlayer == 1:
                 if x - 2 >= 0 and y - 2 >= 0 and self.board[x - 2][y - 2].belongToPlayer == 0:
-                    #self.board[x + 2][y - 2].belongToPlayer = player
                     data.curX = x - 2
                     data.curY = y - 2
                     data.opportunity += 50
             elif self.board[x - 1][y - 1].belongToPlayer == 0:
-                data.curX = x - 1
-                data.curY = y - 1
-                data.opportunity += 2
+                if (data.opportunity < 50):
+                    data.curX = x - 1
+                    data.curY = y - 1
+                    data.opportunity += 2
 
 
 
         if y + 1 <= 7 and x + 1 <= 7 and king == True:
             if self.board[x + 1][y + 1].belongToPlayer == 1:
                 if x + 2 <= 7 and y + 2 <= 7 and self.board[x + 2][y + 2].belongToPlayer == 0:
-                    #self.board[x + 2][y - 2].belongToPlayer = player
                     data.curX = x + 2
-                    data.curY = y - 2
+                    data.curY = y + 2
                     data.opportunity += 50
             elif self.board[x + 1][y + 1].belongToPlayer == 0:
-                #self.board[x + 1][y - 1].belongToPlayer = player
-                data.curX = x + 1
-                data.curY = y + 1
-                data.opportunity += 2
+                if (data.opportunity < 50):
+                    data.curX = x + 1
+                    data.curY = y + 1
+                    data.opportunity += 2
         if y + 1 <= 7 and x - 1 >= 0 and king == True:
             if self.board[x - 1][y + 1].belongToPlayer == 1:
                 if x - 2 >= 0 and y + 2 <= 7 and self.board[x - 2][y + 2].belongToPlayer == 0:
-                    #self.board[x + 2][y - 2].belongToPlayer = player
                     data.curX = x - 2
                     data.curY = y + 2
                     data.opportunity += 50
             elif self.board[x - 1][y + 1].belongToPlayer == 0:
-                data.curX = x - 1
-                data.curY = y + 1
-                data.opportunity += 2
+                if (data.opportunity < 50):
+                    data.curX = x - 1
+                    data.curY = y + 1
+                    data.opportunity += 2
 
 
 
